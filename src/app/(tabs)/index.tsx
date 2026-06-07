@@ -1,33 +1,19 @@
 import { router } from 'expo-router';
-import { Camera, MapPin } from 'lucide-react-native';
+import { Bird, Camera, MapPin } from 'lucide-react-native';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BirdCard, type BirdCardData } from '@/components/bird-card';
-import { Sparrow } from '@/components/illustrations/sparrow';
+import { BirdCard } from '@/components/bird-card';
 import { ProgressBar } from '@/components/progress-bar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
+import { MOCK_BIRDS, RARITY_LABEL, RECENT_BIRDS, SEASON_BIRDS } from '@/data/birds';
 import { useTheme } from '@/hooks/use-theme';
 
-// 목업 데이터 — Supabase 연동 시 교체.
 const REGION = '성동구';
-const COLLECTED = 7;
-const TOTAL = 30;
-
-const RECENT: (BirdCardData & { id: string })[] = [
-  { id: 'r1', name: '참새', rarityLabel: '흔함', collected: true, caption: '오늘' },
-  { id: 'r2', name: '직박구리', rarityLabel: '흔함', collected: true, caption: '어제' },
-  { id: 'r3', name: '박새', rarityLabel: '흔함', collected: true, caption: '3일 전' },
-  { id: 'r4', name: '멧비둘기', rarityLabel: '흔함', collected: true, caption: '5일 전' },
-];
-
-const SEASON: (BirdCardData & { id: string })[] = [
-  { id: 's1', name: '청둥오리', rarityLabel: '시즌', collected: false },
-  { id: 's2', name: '쇠오리', rarityLabel: '시즌', collected: false },
-  { id: 's3', name: '큰기러기', rarityLabel: '시즌', collected: false },
-];
+const COLLECTED = MOCK_BIRDS.filter((b) => b.collected).length;
+const TOTAL = MOCK_BIRDS.length;
 
 export default function HomeScreen() {
   const theme = useTheme();
@@ -42,7 +28,7 @@ export default function HomeScreen() {
             <View style={styles.headerText}>
               <View style={styles.greetingRow}>
                 <ThemedText style={styles.greeting}>오늘도 새록새록</ThemedText>
-                <Sparrow size={38} />
+                <Bird color={theme.tint} size={30} />
               </View>
               <ThemedText type="small" themeColor="textSecondary">
                 동네 새들이 당신을 기다려요
@@ -56,26 +42,35 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          {/* 진행률 카드 */}
-          <ThemedView type="backgroundElement" style={[styles.pad, styles.progressCard]}>
-            <View style={styles.progressTop}>
-              <ThemedText type="smallBold">{REGION} 도감</ThemedText>
-              <ThemedText type="smallBold" style={{ color: theme.tint }}>
-                {Math.round(pct * 100)}%
-              </ThemedText>
-            </View>
-            <View style={styles.countRow}>
-              <ThemedText style={styles.count}>{COLLECTED}</ThemedText>
-              <ThemedText type="small" themeColor="textSecondary" style={styles.countTotal}>
-                {' '}
-                / {TOTAL}종
-              </ThemedText>
-            </View>
-            <ProgressBar value={pct} />
-            <ThemedText type="small" themeColor="textSecondary">
-              동네 도감을 채워보세요!
-            </ThemedText>
-          </ThemedView>
+          {/* 진행률 카드 (탭 → 전체 도감) */}
+          <Pressable
+            onPress={() => router.push('/dex')}
+            style={({ pressed }) => [styles.pad, { opacity: pressed ? 0.92 : 1 }]}>
+            <ThemedView type="backgroundElement" style={styles.progressCard}>
+              <View style={styles.progressTop}>
+                <ThemedText type="smallBold">{REGION} 도감</ThemedText>
+                <ThemedText type="smallBold" style={{ color: theme.tint }}>
+                  {Math.round(pct * 100)}%
+                </ThemedText>
+              </View>
+              <View style={styles.countRow}>
+                <ThemedText style={styles.count}>{COLLECTED}</ThemedText>
+                <ThemedText type="small" themeColor="textSecondary" style={styles.countTotal}>
+                  {' '}
+                  / {TOTAL}종
+                </ThemedText>
+              </View>
+              <ProgressBar value={pct} />
+              <View style={styles.progressFooter}>
+                <ThemedText type="small" themeColor="textSecondary">
+                  동네 도감을 채워보세요!
+                </ThemedText>
+                <ThemedText type="smallBold" style={{ color: theme.tint }}>
+                  전체 보기 ›
+                </ThemedText>
+              </View>
+            </ThemedView>
+          </Pressable>
 
           {/* 메인 CTA */}
           <Pressable
@@ -91,16 +86,29 @@ export default function HomeScreen() {
           {/* 최근 등록한 새 */}
           <SectionHeader title="최근 등록한 새" />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
-            {RECENT.map((bird) => (
-              <BirdCard key={bird.id} {...bird} />
+            {RECENT_BIRDS.map((b) => (
+              <BirdCard
+                key={b.id}
+                name={b.name}
+                rarityLabel={RARITY_LABEL[b.rarity]}
+                collected={b.collected}
+                caption={b.caption}
+                onPress={() => router.push({ pathname: '/bird/[id]', params: { id: b.id } })}
+              />
             ))}
           </ScrollView>
 
           {/* 이번 시즌 새 */}
           <SectionHeader title="이번 시즌 새" subtitle="아직 못 만난 새" />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
-            {SEASON.map((bird) => (
-              <BirdCard key={bird.id} {...bird} />
+            {SEASON_BIRDS.map((b) => (
+              <BirdCard
+                key={b.id}
+                name={b.name}
+                rarityLabel={RARITY_LABEL[b.rarity]}
+                collected={b.collected}
+                onPress={() => router.push({ pathname: '/bird/[id]', params: { id: b.id } })}
+              />
             ))}
           </ScrollView>
         </ScrollView>
@@ -146,6 +154,7 @@ const styles = StyleSheet.create({
   countRow: { flexDirection: 'row', alignItems: 'flex-end' },
   count: { fontSize: 36, fontWeight: 800, lineHeight: 40 },
   countTotal: { marginBottom: 6 },
+  progressFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 
   cta: {
     flexDirection: 'row',

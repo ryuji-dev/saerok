@@ -1,5 +1,5 @@
 import { Image as ImageIcon, Lock } from 'lucide-react-native';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
@@ -13,16 +13,25 @@ export type BirdCardData = {
   caption?: string;
 };
 
-export function BirdCard({ name, rarityLabel, collected, caption }: BirdCardData) {
+type BirdCardProps = BirdCardData & {
+  /** Card width; thumbnail stays square. Defaults to 120 (home rows). */
+  width?: number;
+  onPress?: () => void;
+};
+
+export function BirdCard({ name, rarityLabel, collected, caption, width = 120, onPress }: BirdCardProps) {
   const theme = useTheme();
 
   return (
-    <View style={styles.card}>
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      style={({ pressed }) => [styles.card, { width, opacity: pressed && onPress ? 0.85 : 1 }]}>
       <View style={[styles.thumb, { backgroundColor: theme.backgroundSelected }]}>
         {collected ? (
           <ImageIcon size={30} color={theme.tint} />
         ) : (
-          <Lock size={30} color={theme.textSecondary} />
+          <Lock size={28} color={theme.textSecondary} />
         )}
         <View style={[styles.badge, { backgroundColor: collected ? theme.tintSubtle : theme.background }]}>
           <ThemedText type="small" style={[styles.badgeText, { color: collected ? theme.tint : theme.textSecondary }]}>
@@ -39,15 +48,15 @@ export function BirdCard({ name, rarityLabel, collected, caption }: BirdCardData
           {caption}
         </ThemedText>
       ) : null}
-    </View>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { width: 120, gap: Spacing.one },
+  card: { gap: Spacing.one },
   thumb: {
-    width: 120,
-    height: 120,
+    width: '100%',
+    aspectRatio: 1,
     borderRadius: Spacing.three,
     alignItems: 'center',
     justifyContent: 'center',

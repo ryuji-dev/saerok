@@ -15,6 +15,8 @@ function ThemedNavigation() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="onboarding" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="dex" options={{ headerShown: true, title: '성동구 도감' }} />
+        <Stack.Screen name="bird/[id]" options={{ headerShown: true, title: '' }} />
       </Stack>
       <StatusBar style={isDark ? 'light' : 'dark'} />
     </ThemeProvider>
