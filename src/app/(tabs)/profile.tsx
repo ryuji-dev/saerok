@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { Spacing } from '@/constants/theme';
 
 export default function ProfileScreen() {
@@ -17,6 +18,11 @@ export default function ProfileScreen() {
           <ThemedText type="small" themeColor="textSecondary">
             Lv.1 · XP 0 · 지역 미설정 (로그인·온보딩 후 표시)
           </ThemedText>
+        </ThemedView>
+
+        <ThemedView type="backgroundElement" style={styles.card}>
+          <ThemedText type="smallBold">화면 테마</ThemedText>
+          <ThemeToggle />
         </ThemedView>
 
         <Link href="/onboarding" asChild>

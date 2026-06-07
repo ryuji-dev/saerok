@@ -57,6 +57,7 @@ Public config lives in `.env` (gitignored) — see `.env.example`. Only `EXPO_PU
 
 ## Conventions
 - TypeScript `strict`. Keep `tsc --noEmit` and ESLint green before claiming done.
+- Icons: **Lucide** (`lucide-react-native`). Prefer the rounded family — e.g. `UserRound`, `CircleUserRound` — over the detached-head `User` look. Import per icon by name; color icons via theme tokens.
 - Agent instruction files (`CLAUDE.md` / `AGENTS.md`, outside `docs/`) are written in **English**; the `docs/` folder is **Korean**.
 - User-facing chat/reports: **Korean** (keep code identifiers / commands in their original form).
 

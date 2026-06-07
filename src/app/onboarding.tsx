@@ -5,8 +5,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 
 export default function OnboardingScreen() {
+  const theme = useTheme();
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
@@ -15,8 +17,8 @@ export default function OnboardingScreen() {
           우리 동네(구)를 선택하고, 흔한 새부터 도감을 채워보세요. (동네 선택 + 튜토리얼은 Phase 2에서 구현)
         </ThemedText>
 
-        <Pressable style={styles.button} onPress={() => router.back()}>
-          <ThemedText type="smallBold" style={styles.buttonText}>
+        <Pressable style={[styles.button, { backgroundColor: theme.tint }]} onPress={() => router.back()}>
+          <ThemedText type="smallBold" style={{ color: theme.onTint }}>
             시작하기
           </ThemedText>
         </Pressable>
@@ -30,11 +32,9 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, padding: Spacing.four, gap: Spacing.three, alignItems: 'center', justifyContent: 'center' },
   center: { textAlign: 'center' },
   button: {
-    backgroundColor: '#208AEF',
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
     borderRadius: Spacing.three,
     marginTop: Spacing.three,
   },
-  buttonText: { color: '#ffffff' },
 });
