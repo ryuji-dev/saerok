@@ -1,20 +1,30 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { Bird, Lock } from 'lucide-react-native';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
-import { getBird, RARITY_LABEL } from '@/data/birds';
+import { useSpecies } from '@/features/species/use-species';
 import { useTheme } from '@/hooks/use-theme';
 
 export default function BirdDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const theme = useTheme();
-  const bird = getBird(id);
+  const { data: bird, isLoading, isError } = useSpecies(id);
 
-  if (!bird) {
+  if (isLoading) {
+    return (
+      <ThemedView style={styles.container}>
+        <SafeAreaView style={styles.notFound}>
+          <ActivityIndicator color={theme.tint} />
+        </SafeAreaView>
+      </ThemedView>
+    );
+  }
+
+  if (isError || !bird) {
     return (
       <ThemedView style={styles.container}>
         <SafeAreaView style={styles.notFound}>
@@ -35,7 +45,7 @@ export default function BirdDetailScreen() {
           {locked ? <Lock size={56} color={theme.textSecondary} /> : <Bird size={76} color={theme.tint} />}
           <View style={[styles.badge, { backgroundColor: locked ? theme.background : theme.tintSubtle }]}>
             <ThemedText type="smallBold" style={{ color: locked ? theme.textSecondary : theme.tint }}>
-              {RARITY_LABEL[bird.rarity]}
+              {bird.rarityLabel}
             </ThemedText>
           </View>
         </View>
@@ -60,11 +70,8 @@ export default function BirdDetailScreen() {
         </ThemedView>
 
         {/* 설명 */}
-        <ThemedText
-          type="default"
-          themeColor={locked ? 'textSecondary' : 'text'}
-          style={styles.desc}>
-          {locked ? '촬영해서 도감에 등록하면 정보가 공개돼요.' : bird.description}
+        <ThemedText type="default" themeColor={locked ? 'textSecondary' : 'text'} style={styles.desc}>
+          {locked ? '촬영해서 도감에 등록하면 정보가 공개돼요.' : bird.description || '설명이 아직 없어요.'}
         </ThemedText>
       </ScrollView>
     </ThemedView>
