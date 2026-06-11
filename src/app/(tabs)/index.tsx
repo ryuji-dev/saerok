@@ -105,6 +105,7 @@ export default function HomeScreen() {
                       <BirdCard
                         key={b.id}
                         name={b.name}
+                        rarity={b.rarity}
                         rarityLabel={b.rarityLabel}
                         collected={b.collected}
                         onPress={() => openBird(b.id)}
@@ -123,6 +124,7 @@ export default function HomeScreen() {
                       <BirdCard
                         key={b.id}
                         name={b.name}
+                        rarity={b.rarity}
                         rarityLabel={b.rarityLabel}
                         collected={b.collected}
                         onPress={() => openBird(b.id)}

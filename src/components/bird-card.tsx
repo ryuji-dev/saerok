@@ -3,11 +3,14 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
+import { RARITY_COLOR, type Rarity } from '@/data/birds';
 import { useTheme } from '@/hooks/use-theme';
 
 export type BirdCardData = {
   name: string;
   rarityLabel: string;
+  /** 희귀도 — 뱃지 색상에 사용. 미지정 시 브랜드색으로 폴백. */
+  rarity?: Rarity;
   /** Collected = show the bird; uncollected = locked silhouette. */
   collected: boolean;
   caption?: string;
@@ -19,8 +22,9 @@ type BirdCardProps = BirdCardData & {
   onPress?: () => void;
 };
 
-export function BirdCard({ name, rarityLabel, collected, caption, width = 120, onPress }: BirdCardProps) {
+export function BirdCard({ name, rarityLabel, rarity, collected, caption, width = 120, onPress }: BirdCardProps) {
   const theme = useTheme();
+  const rarityColor = rarity ? RARITY_COLOR[rarity] : theme.tint;
 
   return (
     <Pressable
@@ -33,8 +37,8 @@ export function BirdCard({ name, rarityLabel, collected, caption, width = 120, o
         ) : (
           <Lock size={28} color={theme.textSecondary} />
         )}
-        <View style={[styles.badge, { backgroundColor: collected ? theme.tintSubtle : theme.background }]}>
-          <ThemedText type="small" style={[styles.badgeText, { color: collected ? theme.tint : theme.textSecondary }]}>
+        <View style={[styles.badge, { backgroundColor: `${rarityColor}24` }]}>
+          <ThemedText type="small" style={[styles.badgeText, { color: rarityColor }]}>
             {rarityLabel}
           </ThemedText>
         </View>
