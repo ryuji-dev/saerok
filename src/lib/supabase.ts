@@ -2,6 +2,7 @@ import 'react-native-url-polyfill/auto';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
+import { Platform } from 'react-native';
 
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from './env';
 
@@ -17,7 +18,8 @@ export const supabase = createClient(SUPABASE_URL || 'http://localhost', SUPABAS
     storage: AsyncStorage,
     autoRefreshToken: true,
     persistSession: true,
-    // React Native has no URL-based session detection.
-    detectSessionInUrl: false,
+    // Web can parse the OAuth redirect (#access_token=…) automatically;
+    // native parses it manually after expo-web-browser returns (see auth-provider).
+    detectSessionInUrl: Platform.OS === 'web',
   },
 });
