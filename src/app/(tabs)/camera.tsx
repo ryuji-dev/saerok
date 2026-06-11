@@ -1,4 +1,5 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { Camera as CameraIcon, RefreshCw, ShieldCheck, SwitchCamera } from 'lucide-react-native';
 import { useRef, useState } from 'react';
@@ -9,12 +10,32 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { RARITY_COLOR, type Rarity } from '@/data/birds';
-import { useRegisterCatch } from '@/features/catches/use-catches';
+import { useRegisterCatch, type CatchLocation } from '@/features/catches/use-catches';
 import { useSpeciesList, type Species } from '@/features/species/use-species';
 import { useTheme } from '@/hooks/use-theme';
 
 type Candidate = { id: string; name: string; rarity: Rarity; rarityLabel: string; confidence: number };
 type Phase = 'camera' | 'identifying' | 'result';
+
+/**
+ * 촬영 시점 위치를 최선 노력으로 가져온다. 권한 거부·실패·5초 초과 시 null —
+ * 위치가 없어도 등록 루프를 막지 않는다.
+ */
+async function captureLocation(): Promise<CatchLocation | null> {
+  try {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') return null;
+    const pos = await Promise.race([
+      Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
+    ]);
+    if (pos) return { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    const last = await Location.getLastKnownPositionAsync();
+    return last ? { lat: last.coords.latitude, lng: last.coords.longitude } : null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * 스텁 AI 식별: 종 목록에서 3종을 뽑아 내림차순 신뢰도를 붙인다.
@@ -42,6 +63,8 @@ export default function CameraScreen() {
   const { data: species = [] } = useSpeciesList();
   const register = useRegisterCatch();
   const cameraRef = useRef<CameraView>(null);
+  // 촬영 직후 백그라운드로 시작해, 후보 선택 시점에 결과를 기다린다.
+  const locationRef = useRef<Promise<CatchLocation | null> | null>(null);
 
   const [facing, setFacing] = useState<'back' | 'front'>('back');
   const [phase, setPhase] = useState<Phase>('camera');
@@ -58,6 +81,7 @@ export default function CameraScreen() {
       if (!pic) return;
       setPhotoUri(pic.uri);
       setPhotoBase64(pic.base64 ?? null);
+      locationRef.current = captureLocation();
       setPhase('identifying');
       // 추론 지연 시뮬레이션 후 후보 제시
       setTimeout(() => {
@@ -75,14 +99,16 @@ export default function CameraScreen() {
     setCandidates([]);
     setBusyId(null);
     setError(null);
+    locationRef.current = null;
     setPhase('camera');
   };
 
-  const choose = (c: Candidate) => {
+  const choose = async (c: Candidate) => {
     setBusyId(c.id);
     setError(null);
+    const location = (await locationRef.current) ?? null;
     register.mutate(
-      { speciesId: c.id, photoBase64 },
+      { speciesId: c.id, photoBase64, location },
       {
         onSuccess: () => {
           reset();

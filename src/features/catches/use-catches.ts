@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/features/auth/auth-provider';
+import { useProfile } from '@/features/profile/use-profile';
 import { supabase } from '@/lib/supabase';
 
 const PHOTO_BUCKET = 'catch-photos';
@@ -95,15 +96,28 @@ export function useCollectedPhotos() {
   });
 }
 
+export type CatchLocation = { lat: number; lng: number };
+
 /**
- * 종을 도감에 등록(관측 기록 추가). 사진이 있으면 Storage 에 올리고 photo_path 를 저장한다.
- * 위치·AI 신뢰도는 후속 단계에서 채운다.
+ * 종을 도감에 등록(관측 기록 추가).
+ * - 사진이 있으면 Storage 에 올리고 photo_path 를 저장한다.
+ * - 위치가 있으면 PostGIS POINT 로 저장한다(민감종 마스킹은 DB 뷰에서 강제).
+ * - region_code 는 프로필의 동네로 비정규화(지역 집계용). AI 신뢰도는 후속 단계.
  */
 export function useRegisterCatch() {
   const { user } = useAuth();
+  const { data: profile } = useProfile();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ speciesId, photoBase64 }: { speciesId: string; photoBase64?: string | null }) => {
+    mutationFn: async ({
+      speciesId,
+      photoBase64,
+      location,
+    }: {
+      speciesId: string;
+      photoBase64?: string | null;
+      location?: CatchLocation | null;
+    }) => {
       if (!user) throw new Error('로그인이 필요해요.');
 
       let photoPath: string | null = null;
@@ -121,6 +135,9 @@ export function useRegisterCatch() {
         user_id: user.id,
         species_id: Number(speciesId),
         photo_path: photoPath,
+        // geography(Point,4326) — WKT는 경도(lng) 위도(lat) 순서.
+        location: location ? `POINT(${location.lng} ${location.lat})` : null,
+        region_code: profile?.regionCode ?? null,
       });
       if (error) throw error;
     },
