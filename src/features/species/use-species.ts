@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
+import { useMemo } from 'react';
 
 import { RARITY_LABEL, type Rarity } from '@/data/birds';
+import { useCollectedIds } from '@/features/catches/use-catches';
 import { supabase } from '@/lib/supabase';
 
 /** `species` 테이블 행 (생성 타입 도입 전 임시 정의). */
@@ -27,12 +29,9 @@ export type Species = {
   season: string;
   description: string;
   sensitiveFlag: boolean;
-  /** TODO: 인증 + catches 연동 후 실제 수집 여부로 교체. 지금은 개발용 더미. */
+  /** 내 catches 기록 기준 실제 수집 여부. */
   collected: boolean;
 };
-
-// 임시: 로그인/catches 붙기 전까지 "수집함"으로 표시할 종 (이름 기준).
-const DEV_COLLECTED = new Set(['참새', '까치', '직박구리', '박새', '멧비둘기', '붉은머리오목눈이']);
 
 function mapRow(row: SpeciesRow): Species {
   return {
@@ -46,12 +45,12 @@ function mapRow(row: SpeciesRow): Species {
     season: row.season ?? '정보 없음',
     description: row.description ?? '',
     sensitiveFlag: row.sensitive_flag,
-    collected: DEV_COLLECTED.has(row.name_ko),
+    collected: false, // useCollectedIds 와 병합해 채운다.
   };
 }
 
 export function useSpeciesList() {
-  return useQuery({
+  const speciesQuery = useQuery({
     queryKey: ['species'],
     queryFn: async () => {
       const { data, error } = await supabase.from('species').select('*').order('id').returns<SpeciesRow[]>();
@@ -59,10 +58,19 @@ export function useSpeciesList() {
       return (data ?? []).map(mapRow);
     },
   });
+  const { data: collected } = useCollectedIds();
+
+  const data = useMemo(() => {
+    if (!speciesQuery.data) return undefined;
+    if (!collected) return speciesQuery.data;
+    return speciesQuery.data.map((s) => ({ ...s, collected: collected.has(s.id) }));
+  }, [speciesQuery.data, collected]);
+
+  return { ...speciesQuery, data };
 }
 
 export function useSpecies(id: string) {
-  return useQuery({
+  const speciesQuery = useQuery({
     queryKey: ['species', id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -74,4 +82,12 @@ export function useSpecies(id: string) {
       return mapRow(data);
     },
   });
+  const { data: collected } = useCollectedIds();
+
+  const data = useMemo(() => {
+    if (!speciesQuery.data) return undefined;
+    return { ...speciesQuery.data, collected: collected?.has(speciesQuery.data.id) ?? false };
+  }, [speciesQuery.data, collected]);
+
+  return { ...speciesQuery, data };
 }

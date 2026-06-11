@@ -1,11 +1,13 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { Bird, Lock } from 'lucide-react-native';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { Bird, Check, Lock } from 'lucide-react-native';
+import { useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
+import { useRegisterCatch, useUnregisterCatch } from '@/features/catches/use-catches';
 import { useSpecies } from '@/features/species/use-species';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -13,6 +15,11 @@ export default function BirdDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const theme = useTheme();
   const { data: bird, isLoading, isError } = useSpecies(id);
+  const register = useRegisterCatch();
+  const unregister = useUnregisterCatch();
+  const [error, setError] = useState<string | null>(null);
+
+  const busy = register.isPending || unregister.isPending;
 
   if (isLoading) {
     return (
@@ -71,8 +78,53 @@ export default function BirdDetailScreen() {
 
         {/* 설명 */}
         <ThemedText type="default" themeColor={locked ? 'textSecondary' : 'text'} style={styles.desc}>
-          {locked ? '촬영해서 도감에 등록하면 정보가 공개돼요.' : bird.description || '설명이 아직 없어요.'}
+          {locked ? '도감에 등록하면 정보가 공개돼요.' : bird.description || '설명이 아직 없어요.'}
         </ThemedText>
+
+        {/* 등록 / 해제 */}
+        {locked ? (
+          <Pressable
+            disabled={busy}
+            onPress={() => {
+              setError(null);
+              register.mutate(bird.id, { onError: (e) => setError((e as Error).message) });
+            }}
+            style={({ pressed }) => [styles.cta, { backgroundColor: theme.tint, opacity: pressed || busy ? 0.85 : 1 }]}>
+            {busy ? (
+              <ActivityIndicator color={theme.onTint} />
+            ) : (
+              <ThemedText type="smallBold" style={{ color: theme.onTint }}>
+                이 새를 봤어요 · 도감에 등록
+              </ThemedText>
+            )}
+          </Pressable>
+        ) : (
+          <View style={styles.registeredBlock}>
+            <View style={[styles.registeredBadge, { backgroundColor: theme.tintSubtle }]}>
+              <Check size={18} color={theme.tint} />
+              <ThemedText type="smallBold" style={{ color: theme.tint }}>
+                도감에 등록됨
+              </ThemedText>
+            </View>
+            <Pressable
+              disabled={busy}
+              onPress={() => {
+                setError(null);
+                unregister.mutate(bird.id, { onError: (e) => setError((e as Error).message) });
+              }}
+              style={styles.unregister}>
+              <ThemedText type="small" themeColor="textSecondary">
+                {busy ? '처리 중…' : '등록 해제'}
+              </ThemedText>
+            </Pressable>
+          </View>
+        )}
+
+        {error ? (
+          <ThemedText type="small" themeColor="textSecondary" style={styles.error}>
+            {error}
+          </ThemedText>
+        ) : null}
       </ScrollView>
     </ThemedView>
   );
@@ -115,4 +167,16 @@ const styles = StyleSheet.create({
   infoCard: { borderRadius: Spacing.three, padding: Spacing.four, gap: Spacing.three },
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   desc: { lineHeight: 24 },
+  cta: { height: 52, borderRadius: Spacing.three, alignItems: 'center', justifyContent: 'center' },
+  registeredBlock: { alignItems: 'center', gap: Spacing.two },
+  registeredBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.one,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+    borderRadius: 999,
+  },
+  unregister: { paddingVertical: Spacing.one },
+  error: { textAlign: 'center' },
 });
