@@ -8,13 +8,14 @@ import { ProgressBar } from '@/components/progress-bar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
+import { useProfile } from '@/features/profile/use-profile';
 import { useSpeciesList } from '@/features/species/use-species';
 import { useTheme } from '@/hooks/use-theme';
 
-const REGION = '성동구';
-
 export default function HomeScreen() {
   const theme = useTheme();
+  const { data: profile } = useProfile();
+  const region = profile?.regionCode ?? '내 동네';
   const { data: species = [], isLoading, isError, error } = useSpeciesList();
 
   const collected = species.filter((s) => s.collected);
@@ -42,7 +43,7 @@ export default function HomeScreen() {
             <View style={[styles.regionChip, { backgroundColor: theme.tintSubtle }]}>
               <MapPin size={14} color={theme.tint} />
               <ThemedText type="smallBold" style={{ color: theme.tint }}>
-                {REGION}
+                {region}
               </ThemedText>
             </View>
           </View>
@@ -61,7 +62,7 @@ export default function HomeScreen() {
                 style={({ pressed }) => [styles.pad, { opacity: pressed ? 0.92 : 1 }]}>
                 <ThemedView type="backgroundElement" style={styles.progressCard}>
                   <View style={styles.progressTop}>
-                    <ThemedText type="smallBold">{REGION} 도감</ThemedText>
+                    <ThemedText type="smallBold">{region} 도감</ThemedText>
                     <ThemedText type="smallBold" style={{ color: theme.tint }}>
                       {Math.round(pct * 100)}%
                     </ThemedText>

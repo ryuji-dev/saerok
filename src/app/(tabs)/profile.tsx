@@ -7,9 +7,12 @@ import { ThemedView } from '@/components/themed-view';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/auth-provider';
+import { useProfile } from '@/features/profile/use-profile';
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
+  const { data: profile } = useProfile();
+  const region = profile?.regionCode ? `서울 ${profile.regionCode}` : '지역 미설정';
 
   return (
     <ThemedView style={styles.container}>
@@ -19,7 +22,7 @@ export default function ProfileScreen() {
         <ThemedView type="backgroundElement" style={styles.card}>
           <ThemedText type="smallBold">{user?.email ?? '탐조인'}</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
-            Lv.1 · XP 0 · 지역 미설정 (온보딩 후 표시)
+            Lv.{profile?.level ?? 1} · XP {profile?.xp ?? 0} · {region}
           </ThemedText>
         </ThemedView>
 
@@ -29,7 +32,7 @@ export default function ProfileScreen() {
         </ThemedView>
 
         <Link href="/onboarding" asChild>
-          <ThemedText type="linkPrimary">온보딩 다시 보기 →</ThemedText>
+          <ThemedText type="linkPrimary">동네 변경 →</ThemedText>
         </Link>
 
         <Pressable onPress={signOut} style={styles.logout}>

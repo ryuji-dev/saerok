@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { Search } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native';
@@ -9,6 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { RARITY_COLOR, RARITY_LABEL, RARITY_ORDER, type Rarity } from '@/data/birds';
+import { useProfile } from '@/features/profile/use-profile';
 import { useSpeciesList } from '@/features/species/use-species';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -22,6 +23,7 @@ const STATUS_LABEL: Record<Status, string> = { all: '전체', collected: '모음
 export default function DexGridScreen() {
   const theme = useTheme();
   const { width } = useWindowDimensions();
+  const { data: profile } = useProfile();
   const { data: species = [], isLoading, isError, error } = useSpeciesList();
 
   const [query, setQuery] = useState('');
@@ -45,6 +47,7 @@ export default function DexGridScreen() {
 
   return (
     <ThemedView style={styles.container}>
+      <Stack.Screen options={{ title: profile?.regionCode ? `${profile.regionCode} 도감` : '도감' }} />
       <SafeAreaView edges={['bottom']} style={styles.safe}>
         {isLoading ? (
           <ActivityIndicator color={theme.tint} style={styles.loader} />
