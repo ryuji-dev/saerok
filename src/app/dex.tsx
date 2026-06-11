@@ -9,6 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { RARITY_COLOR, RARITY_LABEL, RARITY_ORDER, type Rarity } from '@/data/birds';
+import { useCollectedPhotos } from '@/features/catches/use-catches';
 import { useProfile } from '@/features/profile/use-profile';
 import { useSpeciesList } from '@/features/species/use-species';
 import { useTheme } from '@/hooks/use-theme';
@@ -24,6 +25,7 @@ export default function DexGridScreen() {
   const theme = useTheme();
   const { width } = useWindowDimensions();
   const { data: profile } = useProfile();
+  const { data: photos } = useCollectedPhotos();
   const { data: species = [], isLoading, isError, error } = useSpeciesList();
 
   const [query, setQuery] = useState('');
@@ -118,6 +120,7 @@ export default function DexGridScreen() {
                     rarity={b.rarity}
                     rarityLabel={b.rarityLabel}
                     collected={b.collected}
+                    photoUrl={photos?.get(b.id)}
                     width={cardWidth}
                     onPress={() => router.push({ pathname: '/bird/[id]', params: { id: b.id } })}
                   />

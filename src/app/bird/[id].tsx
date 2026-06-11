@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { Bird, Check, Lock } from 'lucide-react-native';
 import { useState } from 'react';
@@ -7,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
-import { useRegisterCatch, useUnregisterCatch } from '@/features/catches/use-catches';
+import { useCollectedPhotos, useRegisterCatch, useUnregisterCatch } from '@/features/catches/use-catches';
 import { useSpecies } from '@/features/species/use-species';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -15,6 +16,7 @@ export default function BirdDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const theme = useTheme();
   const { data: bird, isLoading, isError } = useSpecies(id);
+  const { data: photos } = useCollectedPhotos();
   const register = useRegisterCatch();
   const unregister = useUnregisterCatch();
   const [error, setError] = useState<string | null>(null);
@@ -42,6 +44,7 @@ export default function BirdDetailScreen() {
   }
 
   const locked = !bird.collected;
+  const photoUrl = photos?.get(bird.id);
 
   return (
     <ThemedView style={styles.container}>
@@ -49,7 +52,13 @@ export default function BirdDetailScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* 대표 이미지 */}
         <View style={[styles.hero, { backgroundColor: theme.backgroundElement }]}>
-          {locked ? <Lock size={56} color={theme.textSecondary} /> : <Bird size={76} color={theme.tint} />}
+          {!locked && photoUrl ? (
+            <Image source={{ uri: photoUrl }} style={styles.heroPhoto} contentFit="cover" transition={150} />
+          ) : locked ? (
+            <Lock size={56} color={theme.textSecondary} />
+          ) : (
+            <Bird size={76} color={theme.tint} />
+          )}
           <View style={[styles.badge, { backgroundColor: locked ? theme.background : theme.tintSubtle }]}>
             <ThemedText type="smallBold" style={{ color: locked ? theme.textSecondary : theme.tint }}>
               {bird.rarityLabel}
@@ -87,7 +96,7 @@ export default function BirdDetailScreen() {
             disabled={busy}
             onPress={() => {
               setError(null);
-              register.mutate(bird.id, { onError: (e) => setError((e as Error).message) });
+              register.mutate({ speciesId: bird.id }, { onError: (e) => setError((e as Error).message) });
             }}
             style={({ pressed }) => [styles.cta, { backgroundColor: theme.tint, opacity: pressed || busy ? 0.85 : 1 }]}>
             {busy ? (
@@ -153,7 +162,9 @@ const styles = StyleSheet.create({
     borderRadius: Spacing.four,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
+  heroPhoto: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   badge: {
     position: 'absolute',
     top: Spacing.three,

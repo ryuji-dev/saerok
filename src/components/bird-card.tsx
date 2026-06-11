@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { Image as ImageIcon, Lock } from 'lucide-react-native';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -13,6 +14,8 @@ export type BirdCardData = {
   rarity?: Rarity;
   /** Collected = show the bird; uncollected = locked silhouette. */
   collected: boolean;
+  /** 수집한 새의 실제 사진(서명 URL). 있으면 아이콘 대신 사진을 보여준다. */
+  photoUrl?: string;
   caption?: string;
 };
 
@@ -22,7 +25,7 @@ type BirdCardProps = BirdCardData & {
   onPress?: () => void;
 };
 
-export function BirdCard({ name, rarityLabel, rarity, collected, caption, width = 120, onPress }: BirdCardProps) {
+export function BirdCard({ name, rarityLabel, rarity, collected, photoUrl, caption, width = 120, onPress }: BirdCardProps) {
   const theme = useTheme();
   const rarityColor = rarity ? RARITY_COLOR[rarity] : theme.tint;
 
@@ -32,7 +35,9 @@ export function BirdCard({ name, rarityLabel, rarity, collected, caption, width 
       disabled={!onPress}
       style={({ pressed }) => [styles.card, { width, opacity: pressed && onPress ? 0.85 : 1 }]}>
       <View style={[styles.thumb, { backgroundColor: theme.backgroundSelected }]}>
-        {collected ? (
+        {collected && photoUrl ? (
+          <Image source={{ uri: photoUrl }} style={styles.photo} contentFit="cover" transition={150} />
+        ) : collected ? (
           <ImageIcon size={30} color={theme.tint} />
         ) : (
           <Lock size={28} color={theme.textSecondary} />
@@ -64,7 +69,9 @@ const styles = StyleSheet.create({
     borderRadius: Spacing.three,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
+  photo: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   badge: {
     position: 'absolute',
     top: Spacing.two,

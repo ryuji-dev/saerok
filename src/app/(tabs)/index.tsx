@@ -8,6 +8,7 @@ import { ProgressBar } from '@/components/progress-bar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
+import { useCollectedPhotos } from '@/features/catches/use-catches';
 import { useProfile } from '@/features/profile/use-profile';
 import { useSpeciesList } from '@/features/species/use-species';
 import { useTheme } from '@/hooks/use-theme';
@@ -16,6 +17,7 @@ export default function HomeScreen() {
   const theme = useTheme();
   const { data: profile } = useProfile();
   const region = profile?.regionCode ?? '내 동네';
+  const { data: photos } = useCollectedPhotos();
   const { data: species = [], isLoading, isError, error } = useSpeciesList();
 
   const collected = species.filter((s) => s.collected);
@@ -109,6 +111,7 @@ export default function HomeScreen() {
                         rarity={b.rarity}
                         rarityLabel={b.rarityLabel}
                         collected={b.collected}
+                        photoUrl={photos?.get(b.id)}
                         onPress={() => openBird(b.id)}
                       />
                     ))}

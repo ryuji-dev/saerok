@@ -46,6 +46,7 @@ export default function CameraScreen() {
   const [facing, setFacing] = useState<'back' | 'front'>('back');
   const [phase, setPhase] = useState<Phase>('camera');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [photoBase64, setPhotoBase64] = useState<string | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -53,9 +54,10 @@ export default function CameraScreen() {
   const shoot = async () => {
     setError(null);
     try {
-      const pic = await cameraRef.current?.takePictureAsync({ quality: 0.6 });
+      const pic = await cameraRef.current?.takePictureAsync({ quality: 0.6, base64: true });
       if (!pic) return;
       setPhotoUri(pic.uri);
+      setPhotoBase64(pic.base64 ?? null);
       setPhase('identifying');
       // 추론 지연 시뮬레이션 후 후보 제시
       setTimeout(() => {
@@ -69,6 +71,7 @@ export default function CameraScreen() {
 
   const reset = () => {
     setPhotoUri(null);
+    setPhotoBase64(null);
     setCandidates([]);
     setBusyId(null);
     setError(null);
@@ -78,16 +81,19 @@ export default function CameraScreen() {
   const choose = (c: Candidate) => {
     setBusyId(c.id);
     setError(null);
-    register.mutate(c.id, {
-      onSuccess: () => {
-        reset();
-        router.push({ pathname: '/bird/[id]', params: { id: c.id } });
+    register.mutate(
+      { speciesId: c.id, photoBase64 },
+      {
+        onSuccess: () => {
+          reset();
+          router.push({ pathname: '/bird/[id]', params: { id: c.id } });
+        },
+        onError: (e) => {
+          setBusyId(null);
+          setError((e as Error).message);
+        },
       },
-      onError: (e) => {
-        setBusyId(null);
-        setError((e as Error).message);
-      },
-    });
+    );
   };
 
   // 권한 로딩/요청 게이트
