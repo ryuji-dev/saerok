@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { type Rarity } from '@/data/birds';
 import { useAuth } from '@/features/auth/auth-provider';
 import { useProfile } from '@/features/profile/use-profile';
 import { supabase } from '@/lib/supabase';
@@ -92,6 +93,64 @@ export function useCollectedPhotos() {
         if (url) result.set(sid, url);
       }
       return result;
+    },
+  });
+}
+
+export type MyCatch = {
+  id: string;
+  speciesId: string | null;
+  name: string;
+  rarity: Rarity | null;
+  capturedAt: string;
+  regionCode: string | null;
+  photoUrl: string | null;
+};
+
+/** 내 관측 기록 목록(최신순, 종 정보 조인) + 전체 관측 수. 프로필 통계용. */
+export function useMyCatches(limit = 10) {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ['catches', 'mine', user?.id, limit],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error, count } = await supabase
+        .from('catches')
+        .select('id, species_id, captured_at, photo_path, region_code, species(name_ko, rarity)', { count: 'exact' })
+        .order('captured_at', { ascending: false })
+        .limit(limit);
+      if (error) throw error;
+
+      type Row = {
+        id: string;
+        species_id: number | null;
+        captured_at: string;
+        photo_path: string | null;
+        region_code: string | null;
+        species: { name_ko: string; rarity: Rarity } | null;
+      };
+      const rows = (data ?? []) as unknown as Row[];
+
+      const paths = rows.map((r) => r.photo_path).filter((p): p is string => !!p);
+      const urlByPath = new Map<string, string>();
+      if (paths.length > 0) {
+        const { data: signed, error: signErr } = await supabase.storage.from(PHOTO_BUCKET).createSignedUrls(paths, SIGNED_URL_TTL);
+        if (signErr) throw signErr;
+        for (const item of signed ?? []) {
+          if (item.path && item.signedUrl) urlByPath.set(item.path, item.signedUrl);
+        }
+      }
+
+      const items: MyCatch[] = rows.map((r) => ({
+        id: r.id,
+        speciesId: r.species_id === null ? null : String(r.species_id),
+        name: r.species?.name_ko ?? '미확인 종',
+        rarity: r.species?.rarity ?? null,
+        capturedAt: r.captured_at,
+        regionCode: r.region_code,
+        photoUrl: r.photo_path ? (urlByPath.get(r.photo_path) ?? null) : null,
+      }));
+      return { items, total: count ?? items.length };
     },
   });
 }
