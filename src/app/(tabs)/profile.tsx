@@ -4,6 +4,7 @@ import { Bird, Camera } from 'lucide-react-native';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ProgressBar } from '@/components/progress-bar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -27,6 +28,8 @@ export default function ProfileScreen() {
   const { data: collectedIds } = useCollectedIds();
   const { data: myCatches } = useMyCatches(10);
   const region = profile?.regionCode ? `서울 ${profile.regionCode}` : '지역 미설정';
+  const xp = profile?.xp ?? 0;
+  const xpInLevel = xp % 100; // 100 XP = 1 레벨
 
   return (
     <ThemedView style={styles.container}>
@@ -37,8 +40,14 @@ export default function ProfileScreen() {
           <ThemedView type="backgroundElement" style={styles.card}>
             <ThemedText type="smallBold">{user?.email ?? '탐조인'}</ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
-              Lv.{profile?.level ?? 1} · XP {profile?.xp ?? 0} · {region}
+              Lv.{profile?.level ?? 1} · XP {xp} · {region}
             </ThemedText>
+            <View style={styles.xpBlock}>
+              <ProgressBar value={xpInLevel / 100} />
+              <ThemedText type="small" themeColor="textSecondary">
+                다음 레벨까지 {100 - xpInLevel} XP
+              </ThemedText>
+            </View>
           </ThemedView>
 
           {/* 수집 통계 */}
@@ -138,6 +147,7 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   content: { padding: Spacing.four, gap: Spacing.three },
   card: { alignSelf: 'stretch', gap: Spacing.one, padding: Spacing.three, borderRadius: Spacing.three },
+  xpBlock: { gap: Spacing.one, marginTop: Spacing.one },
   center: { textAlign: 'center' },
 
   statsRow: { flexDirection: 'row', gap: Spacing.three },

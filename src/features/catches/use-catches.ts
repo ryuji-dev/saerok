@@ -202,6 +202,7 @@ export function useRegisterCatch() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['catches'] });
+      queryClient.invalidateQueries({ queryKey: ['profile'] }); // XP/레벨 갱신 반영
     },
   });
 }
@@ -222,6 +223,7 @@ export function useUnregisterCatch() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['catches'] });
+      queryClient.invalidateQueries({ queryKey: ['profile'] }); // XP/레벨 갱신 반영
     },
   });
 }
