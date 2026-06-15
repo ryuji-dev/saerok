@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ErrorState } from '@/components/state-views';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -15,7 +16,7 @@ import { useTheme } from '@/hooks/use-theme';
 export default function BirdDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const theme = useTheme();
-  const { data: bird, isLoading, isError } = useSpecies(id);
+  const { data: bird, isLoading, isError, refetch } = useSpecies(id);
   const { data: photos } = useCollectedPhotos();
   const register = useRegisterCatch();
   const unregister = useUnregisterCatch();
@@ -33,9 +34,21 @@ export default function BirdDetailScreen() {
     );
   }
 
-  if (isError || !bird) {
+  if (isError) {
     return (
       <ThemedView style={styles.container}>
+        <Stack.Screen options={{ title: '' }} />
+        <SafeAreaView style={styles.notFound}>
+          <ErrorState message="새 정보를 불러오지 못했어요." onRetry={() => refetch()} />
+        </SafeAreaView>
+      </ThemedView>
+    );
+  }
+
+  if (!bird) {
+    return (
+      <ThemedView style={styles.container}>
+        <Stack.Screen options={{ title: '' }} />
         <SafeAreaView style={styles.notFound}>
           <ThemedText type="subtitle">새를 찾을 수 없어요</ThemedText>
         </SafeAreaView>

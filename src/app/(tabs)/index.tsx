@@ -1,10 +1,12 @@
 import { router } from 'expo-router';
 import { Bird, Camera, MapPin } from 'lucide-react-native';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BirdCard } from '@/components/bird-card';
 import { ProgressBar } from '@/components/progress-bar';
+import { BirdCardSkeleton, Skeleton } from '@/components/skeleton';
+import { ErrorState } from '@/components/state-views';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -18,7 +20,7 @@ export default function HomeScreen() {
   const { data: profile } = useProfile();
   const region = profile?.regionCode ?? '내 동네';
   const { data: photos } = useCollectedPhotos();
-  const { data: species = [], isLoading, isError, error } = useSpeciesList();
+  const { data: species = [], isLoading, isError, error, refetch } = useSpeciesList();
 
   const collected = species.filter((s) => s.collected);
   const uncollected = species.filter((s) => !s.collected);
@@ -51,11 +53,21 @@ export default function HomeScreen() {
           </View>
 
           {isLoading ? (
-            <ActivityIndicator color={theme.tint} style={styles.loader} />
+            <>
+              <View style={styles.pad}>
+                <Skeleton style={styles.progressSkeleton} />
+              </View>
+              <View style={styles.pad}>
+                <Skeleton style={styles.ctaSkeleton} />
+              </View>
+              <View style={styles.row}>
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <BirdCardSkeleton key={i} />
+                ))}
+              </View>
+            </>
           ) : isError ? (
-            <ThemedText type="small" themeColor="textSecondary" style={styles.pad}>
-              데이터를 불러오지 못했어요: {(error as Error).message}
-            </ThemedText>
+            <ErrorState message={`데이터를 불러오지 못했어요.\n${(error as Error).message}`} onRetry={() => refetch()} />
           ) : (
             <>
               {/* 진행률 카드 (탭 → 전체 도감) */}
@@ -163,7 +175,8 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   content: { paddingVertical: Spacing.four, gap: Spacing.four },
   pad: { marginHorizontal: Spacing.four },
-  loader: { marginTop: Spacing.six },
+  progressSkeleton: { height: 150, borderRadius: Spacing.three },
+  ctaSkeleton: { height: 48, borderRadius: Spacing.three },
 
   header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: Spacing.three },
   headerText: { flex: 1, gap: Spacing.one },

@@ -1,10 +1,12 @@
 import { router, Stack } from 'expo-router';
-import { Search } from 'lucide-react-native';
+import { SearchX, Search } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BirdCard } from '@/components/bird-card';
+import { BirdGridSkeleton } from '@/components/skeleton';
+import { EmptyState, ErrorState } from '@/components/state-views';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -26,7 +28,7 @@ export default function DexGridScreen() {
   const { width } = useWindowDimensions();
   const { data: profile } = useProfile();
   const { data: photos } = useCollectedPhotos();
-  const { data: species = [], isLoading, isError, error } = useSpeciesList();
+  const { data: species = [], isLoading, isError, error, refetch } = useSpeciesList();
 
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<Status>('all');
@@ -52,11 +54,11 @@ export default function DexGridScreen() {
       <Stack.Screen options={{ title: profile?.regionCode ? `${profile.regionCode} 도감` : '도감' }} />
       <SafeAreaView edges={['bottom']} style={styles.safe}>
         {isLoading ? (
-          <ActivityIndicator color={theme.tint} style={styles.loader} />
+          <View style={styles.content}>
+            <BirdGridSkeleton width={cardWidth} />
+          </View>
         ) : isError ? (
-          <ThemedText type="small" themeColor="textSecondary" style={styles.error}>
-            데이터를 불러오지 못했어요: {(error as Error).message}
-          </ThemedText>
+          <ErrorState message={`데이터를 불러오지 못했어요.\n${(error as Error).message}`} onRetry={() => refetch()} />
         ) : (
           <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             {/* 검색 */}
@@ -108,9 +110,7 @@ export default function DexGridScreen() {
             </ThemedText>
 
             {filtered.length === 0 ? (
-              <ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
-                조건에 맞는 새가 없어요. 필터를 바꿔보세요.
-              </ThemedText>
+              <EmptyState icon={SearchX} title="조건에 맞는 새가 없어요" subtitle="검색어나 필터를 바꿔보세요." />
             ) : (
               <View style={styles.grid}>
                 {filtered.map((b) => (
@@ -168,8 +168,6 @@ function Chip({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   safe: { flex: 1 },
-  loader: { marginTop: Spacing.six },
-  error: { padding: Spacing.four },
   content: { padding: PAD, gap: Spacing.three },
 
   search: {
@@ -188,6 +186,5 @@ const styles = StyleSheet.create({
 
   chip: { paddingHorizontal: Spacing.three, paddingVertical: Spacing.two, borderRadius: 999 },
 
-  empty: { textAlign: 'center', paddingVertical: Spacing.six },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: GAP },
 });
