@@ -13,6 +13,7 @@ import { RARITY_COLOR, type Rarity } from '@/data/birds';
 import { useRegisterCatch, type CatchLocation } from '@/features/catches/use-catches';
 import { useSpeciesList, type Species } from '@/features/species/use-species';
 import { useTheme } from '@/hooks/use-theme';
+import { resizeForUpload } from '@/lib/image';
 
 type Candidate = { id: string; name: string; rarity: Rarity; rarityLabel: string; confidence: number };
 type Phase = 'camera' | 'identifying' | 'result';
@@ -77,19 +78,33 @@ export default function CameraScreen() {
   const shoot = async () => {
     setError(null);
     try {
+      // base64 는 리사이즈 실패 시 폴백용. 정상 경로는 리사이즈본을 업로드한다.
       const pic = await cameraRef.current?.takePictureAsync({ quality: 0.6, base64: true });
       if (!pic) return;
       setPhotoUri(pic.uri);
-      setPhotoBase64(pic.base64 ?? null);
       locationRef.current = captureLocation();
       setPhase('identifying');
-      // 추론 지연 시뮬레이션 후 후보 제시
-      setTimeout(() => {
-        setCandidates(fakeIdentify(species));
-        setPhase('result');
-      }, 900);
+
+      // 업로드 전 리사이즈(용량 절감) — 식별 지연 동안 백그라운드 처리.
+      let previewUri = pic.uri;
+      let uploadBase64 = pic.base64 ?? null;
+      try {
+        const [processed] = await Promise.all([
+          resizeForUpload(pic.uri),
+          new Promise((resolve) => setTimeout(resolve, 700)), // 식별 연출 최소 시간
+        ]);
+        previewUri = processed.uri;
+        uploadBase64 = processed.base64 ?? uploadBase64;
+      } catch {
+        // 리사이즈 실패 시 원본 base64 로 업로드(등록 흐름을 막지 않음).
+      }
+      setPhotoUri(previewUri);
+      setPhotoBase64(uploadBase64);
+      setCandidates(fakeIdentify(species));
+      setPhase('result');
     } catch {
       setError('촬영에 실패했어요. 다시 시도해 주세요.');
+      setPhase('camera');
     }
   };
 
