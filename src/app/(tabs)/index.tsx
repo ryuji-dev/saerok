@@ -123,6 +123,7 @@ export default function HomeScreen() {
                         rarity={b.rarity}
                         rarityLabel={b.rarityLabel}
                         collected={b.collected}
+                        sensitive={b.sensitiveFlag}
                         photoUrl={photos?.get(b.id)}
                         onPress={() => openBird(b.id)}
                       />

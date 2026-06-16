@@ -102,6 +102,7 @@ export type MyCatch = {
   speciesId: string | null;
   name: string;
   rarity: Rarity | null;
+  sensitive: boolean;
   capturedAt: string;
   regionCode: string | null;
   photoUrl: string | null;
@@ -116,7 +117,7 @@ export function useMyCatches(limit = 10) {
     queryFn: async () => {
       const { data, error, count } = await supabase
         .from('catches')
-        .select('id, species_id, captured_at, photo_path, region_code, species(name_ko, rarity)', { count: 'exact' })
+        .select('id, species_id, captured_at, photo_path, region_code, species(name_ko, rarity, sensitive_flag)', { count: 'exact' })
         .order('captured_at', { ascending: false })
         .limit(limit);
       if (error) throw error;
@@ -127,7 +128,7 @@ export function useMyCatches(limit = 10) {
         captured_at: string;
         photo_path: string | null;
         region_code: string | null;
-        species: { name_ko: string; rarity: Rarity } | null;
+        species: { name_ko: string; rarity: Rarity; sensitive_flag: boolean } | null;
       };
       const rows = (data ?? []) as unknown as Row[];
 
@@ -146,6 +147,7 @@ export function useMyCatches(limit = 10) {
         speciesId: r.species_id === null ? null : String(r.species_id),
         name: r.species?.name_ko ?? '미확인 종',
         rarity: r.species?.rarity ?? null,
+        sensitive: r.species?.sensitive_flag ?? false,
         capturedAt: r.captured_at,
         regionCode: r.region_code,
         photoUrl: r.photo_path ? (urlByPath.get(r.photo_path) ?? null) : null,

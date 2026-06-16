@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { Image as ImageIcon, Lock } from 'lucide-react-native';
+import { Image as ImageIcon, Lock, ShieldCheck } from 'lucide-react-native';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -16,6 +16,8 @@ export type BirdCardData = {
   collected: boolean;
   /** 수집한 새의 실제 사진(서명 URL). 있으면 아이콘 대신 사진을 보여준다. */
   photoUrl?: string;
+  /** 보호종 여부 — 수집 후에만 표식을 노출한다. */
+  sensitive?: boolean;
   caption?: string;
 };
 
@@ -25,7 +27,7 @@ type BirdCardProps = BirdCardData & {
   onPress?: () => void;
 };
 
-export function BirdCard({ name, rarityLabel, rarity, collected, photoUrl, caption, width = 120, onPress }: BirdCardProps) {
+export function BirdCard({ name, rarityLabel, rarity, collected, photoUrl, sensitive, caption, width = 120, onPress }: BirdCardProps) {
   const theme = useTheme();
   const rarityColor = rarity ? RARITY_COLOR[rarity] : theme.tint;
 
@@ -47,6 +49,12 @@ export function BirdCard({ name, rarityLabel, rarity, collected, photoUrl, capti
             {rarityLabel}
           </ThemedText>
         </View>
+        {/* 보호종 표식 — 수집한 종에만 (미수집 노출은 희귀종 사냥 유발 우려) */}
+        {collected && sensitive ? (
+          <View style={[styles.shield, { backgroundColor: theme.tintSubtle }]}>
+            <ShieldCheck size={13} color={theme.tint} strokeWidth={2} />
+          </View>
+        ) : null}
       </View>
 
       <ThemedText type="smallBold" numberOfLines={1}>
@@ -81,4 +89,5 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   badgeText: { fontSize: 11, lineHeight: 16 },
+  shield: { position: 'absolute', top: Spacing.two, right: Spacing.two, width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
 });

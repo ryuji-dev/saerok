@@ -120,6 +120,7 @@ export default function DexGridScreen() {
                     rarity={b.rarity}
                     rarityLabel={b.rarityLabel}
                     collected={b.collected}
+                    sensitive={b.sensitiveFlag}
                     photoUrl={photos?.get(b.id)}
                     width={cardWidth}
                     onPress={() => router.push({ pathname: '/bird/[id]', params: { id: b.id } })}

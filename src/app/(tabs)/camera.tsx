@@ -15,7 +15,7 @@ import { useSpeciesList, type Species } from '@/features/species/use-species';
 import { useTheme } from '@/hooks/use-theme';
 import { resizeForUpload } from '@/lib/image';
 
-type Candidate = { id: string; name: string; rarity: Rarity; rarityLabel: string; confidence: number };
+type Candidate = { id: string; name: string; rarity: Rarity; rarityLabel: string; sensitive: boolean; confidence: number };
 type Phase = 'camera' | 'identifying' | 'result';
 
 /**
@@ -54,6 +54,7 @@ function fakeIdentify(species: Species[]): Candidate[] {
     name: s.name,
     rarity: s.rarity,
     rarityLabel: s.rarityLabel,
+    sensitive: s.sensitiveFlag,
     confidence: confs[i] ?? 0.3,
   }));
 }
@@ -222,6 +223,14 @@ export default function CameraScreen() {
                         신뢰도 {pct}%
                       </ThemedText>
                     </View>
+                    {c.sensitive ? (
+                      <View style={styles.sensitiveNote}>
+                        <ShieldCheck size={13} color={theme.tint} strokeWidth={2} />
+                        <ThemedText type="small" style={{ color: theme.tint, fontSize: 12 }}>
+                          보호종 · 등록해도 관측 위치는 공개되지 않아요
+                        </ThemedText>
+                      </View>
+                    ) : null}
                   </Pressable>
                 );
               })
@@ -351,6 +360,7 @@ const styles = StyleSheet.create({
   confRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   confTrack: { flex: 1, height: 6, borderRadius: 3, overflow: 'hidden' },
   confFill: { height: '100%', borderRadius: 3 },
+  sensitiveNote: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one },
 
   retake: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.two, paddingVertical: Spacing.three, marginTop: Spacing.one },
 });

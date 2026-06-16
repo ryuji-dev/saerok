@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { SensitiveBadge, SensitiveNotice } from '@/components/sensitive-notice';
 import { ErrorState } from '@/components/state-views';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -77,6 +78,12 @@ export default function BirdDetailScreen() {
               {bird.rarityLabel}
             </ThemedText>
           </View>
+          {/* 보호종 표식은 수집(공개) 후에만 — 미수집 종 노출은 희귀종 사냥 유발 우려 */}
+          {!locked && bird.sensitiveFlag ? (
+            <View style={styles.heroShield}>
+              <SensitiveBadge size={16} />
+            </View>
+          ) : null}
         </View>
 
         {/* 이름 */}
@@ -97,6 +104,9 @@ export default function BirdDetailScreen() {
             valueColor={locked ? undefined : theme.tint}
           />
         </ThemedView>
+
+        {/* 보호종 안내 (수집 후에만) */}
+        {!locked && bird.sensitiveFlag ? <SensitiveNotice /> : null}
 
         {/* 설명 */}
         <ThemedText type="default" themeColor={locked ? 'textSecondary' : 'text'} style={styles.desc}>
@@ -186,6 +196,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.one,
     borderRadius: 999,
   },
+  heroShield: { position: 'absolute', top: Spacing.three, right: Spacing.three },
   titleBlock: { gap: Spacing.one },
   name: { fontSize: 28, fontWeight: 800, lineHeight: 34 },
   infoCard: { borderRadius: Spacing.three, padding: Spacing.four, gap: Spacing.three },

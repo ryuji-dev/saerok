@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ProgressBar } from '@/components/progress-bar';
+import { SensitiveBadge } from '@/components/sensitive-notice';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -131,13 +132,16 @@ function CatchRow({ item, isLast }: { item: MyCatch; isLast: boolean }) {
           {item.regionCode ? ` · ${item.regionCode}` : ''}
         </ThemedText>
       </View>
-      {item.rarity ? (
-        <View style={[styles.rarityBadge, { backgroundColor: `${color}24` }]}>
-          <ThemedText type="small" style={{ color, fontSize: 11 }}>
-            {RARITY_LABEL[item.rarity]}
-          </ThemedText>
-        </View>
-      ) : null}
+      <View style={styles.rowMeta}>
+        {item.sensitive ? <SensitiveBadge size={13} /> : null}
+        {item.rarity ? (
+          <View style={[styles.rarityBadge, { backgroundColor: `${color}24` }]}>
+            <ThemedText type="small" style={{ color, fontSize: 11 }}>
+              {RARITY_LABEL[item.rarity]}
+            </ThemedText>
+          </View>
+        ) : null}
+      </View>
     </Pressable>
   );
 }
@@ -160,6 +164,7 @@ const styles = StyleSheet.create({
   rowThumb: { width: 44, height: 44, borderRadius: Spacing.two, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   rowPhoto: { width: '100%', height: '100%' },
   rowBody: { flex: 1, gap: 2 },
+  rowMeta: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one },
   rarityBadge: { paddingHorizontal: Spacing.two, paddingVertical: 2, borderRadius: 999 },
 
   logout: { marginTop: Spacing.two, paddingBottom: Spacing.four },
