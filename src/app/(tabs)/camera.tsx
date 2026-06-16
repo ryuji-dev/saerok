@@ -11,6 +11,7 @@ import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { RARITY_COLOR, type Rarity } from '@/data/birds';
 import { useRegisterCatch, type CatchLocation } from '@/features/catches/use-catches';
+import { identify, type IdentifyCandidate } from '@/features/identify';
 import { useSpeciesList, type Species } from '@/features/species/use-species';
 import { useTheme } from '@/hooks/use-theme';
 import { resizeForUpload } from '@/lib/image';
@@ -38,25 +39,14 @@ async function captureLocation(): Promise<CatchLocation | null> {
   }
 }
 
-/**
- * 스텁 AI 식별: 종 목록에서 3종을 뽑아 내림차순 신뢰도를 붙인다.
- * 실제 식별 엔진(비전 모델/iNat 등)은 Edge Function 프록시로 후속 연결.
- */
-function fakeIdentify(species: Species[]): Candidate[] {
-  const pool = [...species];
-  for (let i = pool.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
-  }
-  const confs = [0.86, 0.61, 0.39];
-  return pool.slice(0, 3).map((s, i) => ({
-    id: s.id,
-    name: s.name,
-    rarity: s.rarity,
-    rarityLabel: s.rarityLabel,
-    sensitive: s.sensitiveFlag,
-    confidence: confs[i] ?? 0.3,
-  }));
+/** 식별 결과(종 id + 신뢰도)를 종 목록과 합쳐 화면용 후보로 변환한다. */
+function toCandidates(results: IdentifyCandidate[], species: Species[]): Candidate[] {
+  const byId = new Map(species.map((s) => [s.id, s]));
+  return results.flatMap((r) => {
+    const s = byId.get(r.speciesId);
+    if (!s) return [];
+    return [{ id: s.id, name: s.name, rarity: s.rarity, rarityLabel: s.rarityLabel, sensitive: s.sensitiveFlag, confidence: r.confidence }];
+  });
 }
 
 export default function CameraScreen() {
@@ -101,7 +91,9 @@ export default function CameraScreen() {
       }
       setPhotoUri(previewUri);
       setPhotoBase64(uploadBase64);
-      setCandidates(fakeIdentify(species));
+      // 교체 가능한 식별기 호출(현재 local 온디바이스 placeholder, $0).
+      const results = await identify({ uri: previewUri, base64: uploadBase64 }, species);
+      setCandidates(toCandidates(results, species));
       setPhase('result');
     } catch {
       setError('촬영에 실패했어요. 다시 시도해 주세요.');
