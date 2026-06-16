@@ -8,6 +8,11 @@ import { supabase } from '@/lib/supabase';
 const PHOTO_BUCKET = 'catch-photos';
 const SIGNED_URL_TTL = 60 * 60; // 1시간
 
+/** 이 신뢰도 이상이면 정식 등록(verified), 미만이면 검증 대기(pending)로 홀드한다. */
+export const VERIFY_CONFIDENCE_THRESHOLD = 0.7;
+
+export type VerifiedStatus = 'pending' | 'verified' | 'rejected';
+
 /** base64(또는 data URL) → Uint8Array. 외부 의존성 없이 RN/웹 양쪽에서 동작. */
 const B64_LOOKUP = (() => {
   const table = new Uint8Array(256);
@@ -103,6 +108,7 @@ export type MyCatch = {
   name: string;
   rarity: Rarity | null;
   sensitive: boolean;
+  verifiedStatus: VerifiedStatus;
   capturedAt: string;
   regionCode: string | null;
   photoUrl: string | null;
@@ -117,7 +123,7 @@ export function useMyCatches(limit = 10) {
     queryFn: async () => {
       const { data, error, count } = await supabase
         .from('catches')
-        .select('id, species_id, captured_at, photo_path, region_code, species(name_ko, rarity, sensitive_flag)', { count: 'exact' })
+        .select('id, species_id, captured_at, photo_path, region_code, verified_status, species(name_ko, rarity, sensitive_flag)', { count: 'exact' })
         .order('captured_at', { ascending: false })
         .limit(limit);
       if (error) throw error;
@@ -128,6 +134,7 @@ export function useMyCatches(limit = 10) {
         captured_at: string;
         photo_path: string | null;
         region_code: string | null;
+        verified_status: VerifiedStatus;
         species: { name_ko: string; rarity: Rarity; sensitive_flag: boolean } | null;
       };
       const rows = (data ?? []) as unknown as Row[];
@@ -148,6 +155,7 @@ export function useMyCatches(limit = 10) {
         name: r.species?.name_ko ?? '미확인 종',
         rarity: r.species?.rarity ?? null,
         sensitive: r.species?.sensitive_flag ?? false,
+        verifiedStatus: r.verified_status,
         capturedAt: r.captured_at,
         regionCode: r.region_code,
         photoUrl: r.photo_path ? (urlByPath.get(r.photo_path) ?? null) : null,
@@ -163,7 +171,8 @@ export type CatchLocation = { lat: number; lng: number };
  * 종을 도감에 등록(관측 기록 추가).
  * - 사진이 있으면 Storage 에 올리고 photo_path 를 저장한다.
  * - 위치가 있으면 PostGIS POINT 로 저장한다(민감종 마스킹은 DB 뷰에서 강제).
- * - region_code 는 프로필의 동네로 비정규화(지역 집계용). AI 신뢰도는 후속 단계.
+ * - region_code 는 프로필의 동네로 비정규화(지역 집계용).
+ * - confidence(AI 신뢰도)가 임계값 미만이면 verified_status='pending'(검증 대기)로 홀드한다.
  */
 export function useRegisterCatch() {
   const { user } = useAuth();
@@ -174,10 +183,12 @@ export function useRegisterCatch() {
       speciesId,
       photoBase64,
       location,
+      confidence,
     }: {
       speciesId: string;
       photoBase64?: string | null;
       location?: CatchLocation | null;
+      confidence?: number | null;
     }) => {
       if (!user) throw new Error('로그인이 필요해요.');
 
@@ -192,6 +203,10 @@ export function useRegisterCatch() {
         photoPath = path;
       }
 
+      // 신뢰도 임계값 기반 안티치팅: 기준 미만은 검증 대기로 홀드(공개 뷰 제외).
+      const verifiedStatus: VerifiedStatus =
+        confidence != null && confidence >= VERIFY_CONFIDENCE_THRESHOLD ? 'verified' : 'pending';
+
       const { error } = await supabase.from('catches').insert({
         user_id: user.id,
         species_id: Number(speciesId),
@@ -199,6 +214,8 @@ export function useRegisterCatch() {
         // geography(Point,4326) — WKT는 경도(lng) 위도(lat) 순서.
         location: location ? `POINT(${location.lng} ${location.lat})` : null,
         region_code: profile?.regionCode ?? null,
+        confidence: confidence ?? null,
+        verified_status: verifiedStatus,
       });
       if (error) throw error;
     },

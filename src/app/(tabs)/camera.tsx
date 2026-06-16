@@ -1,7 +1,7 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
-import { Camera as CameraIcon, RefreshCw, ShieldCheck, SwitchCamera } from 'lucide-react-native';
+import { Camera as CameraIcon, RefreshCw, ShieldCheck, SwitchCamera, TriangleAlert } from 'lucide-react-native';
 import { useRef, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,11 +10,14 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { RARITY_COLOR, type Rarity } from '@/data/birds';
-import { useRegisterCatch, type CatchLocation } from '@/features/catches/use-catches';
+import { useRegisterCatch, VERIFY_CONFIDENCE_THRESHOLD, type CatchLocation } from '@/features/catches/use-catches';
 import { identify, type IdentifyCandidate } from '@/features/identify';
 import { useSpeciesList, type Species } from '@/features/species/use-species';
 import { useTheme } from '@/hooks/use-theme';
 import { resizeForUpload } from '@/lib/image';
+
+/** 낮은 신뢰도 강조색(amber). 희귀도 '시즌'과 동일 계열. */
+const LOW_CONF_COLOR = '#D97706';
 
 type Candidate = { id: string; name: string; rarity: Rarity; rarityLabel: string; sensitive: boolean; confidence: number };
 type Phase = 'camera' | 'identifying' | 'result';
@@ -116,7 +119,7 @@ export default function CameraScreen() {
     setError(null);
     const location = (await locationRef.current) ?? null;
     register.mutate(
-      { speciesId: c.id, photoBase64, location },
+      { speciesId: c.id, photoBase64, location, confidence: c.confidence },
       {
         onSuccess: () => {
           reset();
@@ -182,6 +185,7 @@ export default function CameraScreen() {
               candidates.map((c, i) => {
                 const color = RARITY_COLOR[c.rarity];
                 const pct = Math.round(c.confidence * 100);
+                const lowConfidence = c.confidence < VERIFY_CONFIDENCE_THRESHOLD;
                 return (
                   <Pressable
                     key={c.id}
@@ -209,12 +213,20 @@ export default function CameraScreen() {
                     </View>
                     <View style={styles.confRow}>
                       <View style={[styles.confTrack, { backgroundColor: theme.backgroundSelected }]}>
-                        <View style={[styles.confFill, { width: `${pct}%`, backgroundColor: theme.tint }]} />
+                        <View style={[styles.confFill, { width: `${pct}%`, backgroundColor: lowConfidence ? LOW_CONF_COLOR : theme.tint }]} />
                       </View>
-                      <ThemedText type="small" themeColor="textSecondary">
+                      <ThemedText type="small" style={{ color: lowConfidence ? LOW_CONF_COLOR : theme.textSecondary }}>
                         신뢰도 {pct}%
                       </ThemedText>
                     </View>
+                    {lowConfidence ? (
+                      <View style={styles.sensitiveNote}>
+                        <TriangleAlert size={13} color={LOW_CONF_COLOR} strokeWidth={2} />
+                        <ThemedText type="small" style={{ color: LOW_CONF_COLOR, fontSize: 12 }}>
+                          신뢰도가 낮아요 · 등록 시 ‘검증 대기’로 보류돼요
+                        </ThemedText>
+                      </View>
+                    ) : null}
                     {c.sensitive ? (
                       <View style={styles.sensitiveNote}>
                         <ShieldCheck size={13} color={theme.tint} strokeWidth={2} />

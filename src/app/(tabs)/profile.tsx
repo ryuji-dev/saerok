@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { Link, router } from 'expo-router';
-import { Bird, Camera } from 'lucide-react-native';
+import { Bird, Camera, Clock } from 'lucide-react-native';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -133,6 +133,14 @@ function CatchRow({ item, isLast }: { item: MyCatch; isLast: boolean }) {
         </ThemedText>
       </View>
       <View style={styles.rowMeta}>
+        {item.verifiedStatus === 'pending' ? (
+          <View style={[styles.pendingChip, { backgroundColor: theme.backgroundSelected }]}>
+            <Clock size={11} color={theme.textSecondary} />
+            <ThemedText type="small" themeColor="textSecondary" style={{ fontSize: 11 }}>
+              검증 대기
+            </ThemedText>
+          </View>
+        ) : null}
         {item.sensitive ? <SensitiveBadge size={13} /> : null}
         {item.rarity ? (
           <View style={[styles.rarityBadge, { backgroundColor: `${color}24` }]}>
@@ -165,6 +173,7 @@ const styles = StyleSheet.create({
   rowPhoto: { width: '100%', height: '100%' },
   rowBody: { flex: 1, gap: 2 },
   rowMeta: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one },
+  pendingChip: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingHorizontal: Spacing.two, paddingVertical: 2, borderRadius: 999 },
   rarityBadge: { paddingHorizontal: Spacing.two, paddingVertical: 2, borderRadius: 999 },
 
   logout: { marginTop: Spacing.two, paddingBottom: Spacing.four },
