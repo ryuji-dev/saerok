@@ -1,5 +1,10 @@
--- seed.sql — 도감 종 데이터 (MVP 흔한 새 + 시즌/희귀 15종)
--- ⚠️ 시작 종 범위는 TODO Phase 0 결정 항목. 아래는 큐레이션 예시.
+-- 0002_species_enrich.sql
+-- 기존 DB(0001 적용 + 8종 시드)에 적용: season 컬럼 추가 + 15종으로 재시드.
+-- catches가 species를 참조하지만 아직 데이터가 없으므로 delete 안전.
+
+alter table public.species add column if not exists season text;
+
+delete from public.species;
 insert into public.species (name_ko, name_en, scientific_name, rarity, habitat, sensitive_flag, season, description) values
   ('참새',             'Eurasian Tree Sparrow',      'Passer montanus',        'common',   '도심·농경지', false, '사계절',        '도시와 마을 어디서나 흔히 보이는 친근한 텃새. 흰 뺨의 검은 점이 특징입니다.'),
   ('직박구리',         'Brown-eared Bulbul',         'Hypsipetes amaurotis',   'common',   '도심·산지',   false, '사계절',        '시끄러운 울음소리로 존재감을 드러내는 회갈색 텃새입니다.'),
@@ -14,5 +19,5 @@ insert into public.species (name_ko, name_en, scientific_name, rarity, habitat, 
   ('쇠오리',           'Eurasian Teal',              'Anas crecca',            'seasonal', '하천·습지',   false, '겨울 (10~3월)', '가장 작은 오리류 중 하나인 겨울 철새입니다.'),
   ('큰기러기',         'Tundra Bean Goose',          'Anser fabalis',          'seasonal', '농경지·호수', false, '겨울 (10~2월)', 'V자 대형으로 날아가는 대형 겨울 철새입니다.'),
   ('물총새',           'Common Kingfisher',          'Alcedo atthis',          'uncommon','하천·계곡',   false, '여름',          '보석처럼 빛나는 청록색 깃을 가진 물가의 사냥꾼입니다.'),
-  ('황조롱이',         'Common Kestrel',             'Falco tinnunculus',      'uncommon','도심·절벽',   false, '사계절',        '공중에서 정지 비행하며 사냥하는 도심의 맹금류입니다.'),
+  ('황조롱이',         'Common Kestrel',             'Falco tinnunculus',      'uncommon',     '도심·절벽',   false, '사계절',        '공중에서 정지 비행하며 사냥하는 도심의 맹금류입니다.'),
   ('원앙',             'Mandarin Duck',              'Aix galericulata',       'uncommon','계곡·호수',   false, '사계절',        '화려한 색의 수컷으로 유명한 천연기념물 오리입니다.');

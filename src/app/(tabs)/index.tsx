@@ -1,73 +1,214 @@
-import { useQuery } from '@tanstack/react-query';
-import { StyleSheet } from 'react-native';
+import { router } from 'expo-router';
+import { Bird, Camera, MapPin } from 'lucide-react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BirdCard } from '@/components/bird-card';
+import { ProgressBar } from '@/components/progress-bar';
+import { BirdCardSkeleton, Skeleton } from '@/components/skeleton';
+import { ErrorState } from '@/components/state-views';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
-import { isSupabaseConfigured } from '@/lib/env';
-import { supabase } from '@/lib/supabase';
+import { useCollectedPhotos } from '@/features/catches/use-catches';
+import { useProfile } from '@/features/profile/use-profile';
+import { useSpeciesList } from '@/features/species/use-species';
+import { useTheme } from '@/hooks/use-theme';
 
-/** Smoke-test query: proves the app can reach Supabase + the `species` table. */
-function useSpeciesCount() {
-  return useQuery({
-    queryKey: ['species-count'],
-    enabled: isSupabaseConfigured,
-    queryFn: async () => {
-      const { count, error } = await supabase.from('species').select('*', { count: 'exact', head: true });
-      if (error) throw error;
-      return count ?? 0;
-    },
-  });
-}
+export default function HomeScreen() {
+  const theme = useTheme();
+  const { data: profile } = useProfile();
+  const region = profile?.regionCode ?? '내 동네';
+  const { data: photos } = useCollectedPhotos();
+  const { data: species = [], isLoading, isError, error, refetch } = useSpeciesList();
 
-function ConnectionStatus() {
-  const { data, isLoading, isError, error } = useSpeciesCount();
+  const collected = species.filter((s) => s.collected);
+  const uncollected = species.filter((s) => !s.collected);
+  const total = species.length;
+  const pct = total ? collected.length / total : 0;
 
-  if (!isSupabaseConfigured) {
-    return <ThemedText type="small">⚠️ .env에 Supabase URL / anon key를 설정하세요.</ThemedText>;
-  }
-  if (isLoading) {
-    return <ThemedText type="small">Supabase 연결 확인 중…</ThemedText>;
-  }
-  if (isError) {
-    return <ThemedText type="small">연결 응답 받음(테이블 미생성 가능): {(error as Error).message}</ThemedText>;
-  }
-  return <ThemedText type="smallBold">✅ Supabase 연결됨 · 등록 종 {data}개</ThemedText>;
-}
+  const openBird = (id: string) => router.push({ pathname: '/bird/[id]', params: { id } });
 
-export default function DexScreen() {
   return (
     <ThemedView style={styles.container}>
-      <SafeAreaView edges={['bottom']} style={styles.safeArea}>
-        <ThemedText type="subtitle">내 도감</ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
-          동네 → 시 → 도 → 전국 계층별 수집 진행률이 여기에 표시됩니다.
-        </ThemedText>
+      <SafeAreaView edges={['top']} style={styles.safe}>
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          {/* 헤더 */}
+          <View style={[styles.pad, styles.header]}>
+            <View style={styles.headerText}>
+              <View style={styles.greetingRow}>
+                <ThemedText style={styles.greeting}>오늘도 새록새록</ThemedText>
+                <Bird color={theme.tint} size={30} />
+              </View>
+              <ThemedText type="small" themeColor="textSecondary">
+                동네 새들이 당신을 기다려요
+              </ThemedText>
+            </View>
+            <View style={[styles.regionChip, { backgroundColor: theme.tintSubtle }]}>
+              <MapPin size={14} color={theme.tint} />
+              <ThemedText type="smallBold" style={{ color: theme.tint }}>
+                {region}
+              </ThemedText>
+            </View>
+          </View>
 
-        <ThemedView type="backgroundElement" style={styles.card}>
-          <ThemedText type="smallBold">성동구</ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">
-            0 / 0 종 · 0% (Phase 2에서 구현)
-          </ThemedText>
-        </ThemedView>
+          {isLoading ? (
+            <>
+              <View style={styles.pad}>
+                <Skeleton style={styles.progressSkeleton} />
+              </View>
+              <View style={styles.pad}>
+                <Skeleton style={styles.ctaSkeleton} />
+              </View>
+              <View style={styles.row}>
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <BirdCardSkeleton key={i} />
+                ))}
+              </View>
+            </>
+          ) : isError ? (
+            <ErrorState message={`데이터를 불러오지 못했어요.\n${(error as Error).message}`} onRetry={() => refetch()} />
+          ) : (
+            <>
+              {/* 진행률 카드 (탭 → 전체 도감) */}
+              <Pressable
+                onPress={() => router.push('/dex')}
+                style={({ pressed }) => [styles.pad, { opacity: pressed ? 0.92 : 1 }]}>
+                <ThemedView type="backgroundElement" style={styles.progressCard}>
+                  <View style={styles.progressTop}>
+                    <ThemedText type="smallBold">{region} 도감</ThemedText>
+                    <ThemedText type="smallBold" style={{ color: theme.tint }}>
+                      {Math.round(pct * 100)}%
+                    </ThemedText>
+                  </View>
+                  <View style={styles.countRow}>
+                    <ThemedText style={styles.count}>{collected.length}</ThemedText>
+                    <ThemedText type="small" themeColor="textSecondary" style={styles.countTotal}>
+                      {' '}
+                      / {total}종
+                    </ThemedText>
+                  </View>
+                  <ProgressBar value={pct} />
+                  <View style={styles.progressFooter}>
+                    <ThemedText type="small" themeColor="textSecondary">
+                      동네 도감을 채워보세요!
+                    </ThemedText>
+                    <ThemedText type="smallBold" style={{ color: theme.tint }}>
+                      전체 보기 ›
+                    </ThemedText>
+                  </View>
+                </ThemedView>
+              </Pressable>
 
-        <ThemedView type="backgroundElement" style={styles.card}>
-          <ThemedText type="smallBold">백엔드 연결</ThemedText>
-          <ConnectionStatus />
-        </ThemedView>
+              {/* 메인 CTA */}
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => router.push('/camera')}
+                style={({ pressed }) => [styles.pad, styles.cta, { backgroundColor: theme.tint, opacity: pressed ? 0.9 : 1 }]}>
+                <Camera size={20} color={theme.onTint} />
+                <ThemedText type="smallBold" style={{ color: theme.onTint }}>
+                  촬영하기
+                </ThemedText>
+              </Pressable>
+
+              {/* 내가 모은 새 */}
+              {collected.length > 0 ? (
+                <>
+                  <SectionHeader title="내가 모은 새" />
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+                    {collected.map((b) => (
+                      <BirdCard
+                        key={b.id}
+                        name={b.name}
+                        rarity={b.rarity}
+                        rarityLabel={b.rarityLabel}
+                        collected={b.collected}
+                        sensitive={b.sensitiveFlag}
+                        photoUrl={photos?.get(b.id)}
+                        onPress={() => openBird(b.id)}
+                      />
+                    ))}
+                  </ScrollView>
+                </>
+              ) : null}
+
+              {/* 아직 못 만난 새 */}
+              {uncollected.length > 0 ? (
+                <>
+                  <SectionHeader title="아직 못 만난 새" subtitle="촬영해서 도감에 담아보세요" />
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+                    {uncollected.map((b) => (
+                      <BirdCard
+                        key={b.id}
+                        name={b.name}
+                        rarity={b.rarity}
+                        rarityLabel={b.rarityLabel}
+                        collected={b.collected}
+                        onPress={() => openBird(b.id)}
+                      />
+                    ))}
+                  </ScrollView>
+                </>
+              ) : null}
+            </>
+          )}
+        </ScrollView>
       </SafeAreaView>
     </ThemedView>
   );
 }
 
+function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
+  return (
+    <View style={[styles.pad, styles.sectionHeader]}>
+      <ThemedText style={styles.sectionTitle}>{title}</ThemedText>
+      {subtitle ? (
+        <ThemedText type="small" themeColor="textSecondary">
+          {subtitle}
+        </ThemedText>
+      ) : null}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  safeArea: { flex: 1, padding: Spacing.four, gap: Spacing.three },
-  card: {
-    alignSelf: 'stretch',
+  safe: { flex: 1 },
+  content: { paddingVertical: Spacing.four, gap: Spacing.four },
+  pad: { marginHorizontal: Spacing.four },
+  progressSkeleton: { height: 150, borderRadius: Spacing.three },
+  ctaSkeleton: { height: 48, borderRadius: Spacing.three },
+
+  header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: Spacing.three },
+  headerText: { flex: 1, gap: Spacing.one },
+  greetingRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  greeting: { fontSize: 26, fontWeight: 700, lineHeight: 32 },
+  regionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: Spacing.one,
-    padding: Spacing.three,
+    paddingHorizontal: Spacing.two,
+    paddingVertical: Spacing.one,
+    borderRadius: 999,
+  },
+
+  progressCard: { padding: Spacing.four, borderRadius: Spacing.three, gap: Spacing.two },
+  progressTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  countRow: { flexDirection: 'row', alignItems: 'flex-end' },
+  count: { fontSize: 36, fontWeight: 800, lineHeight: 40 },
+  countTotal: { marginBottom: 6 },
+  progressFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+
+  cta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.two,
+    paddingVertical: Spacing.three,
     borderRadius: Spacing.three,
   },
+
+  sectionHeader: { gap: Spacing.half },
+  sectionTitle: { fontSize: 19, fontWeight: 700 },
+  row: { gap: Spacing.three, paddingHorizontal: Spacing.four, paddingVertical: Spacing.one },
 });
